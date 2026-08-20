@@ -14,7 +14,7 @@ const classifierAgent = JSON.parse(readFileSync(new URL('../examples/classifier_
 test('create minimal graph and compile to IR', () => {
   const graph = createEmptyGraph('minimal_graph');
   const errors = validateGraph(graph);
-  assert.ok(errors.length >= 0);
+  assert.equal(errors.length, 0);
   const ir = graphToIR(graph);
   assert.equal(ir.agent, 'minimal_graph');
   assert.equal(ir.nodes.length, graph.nodes.length);
@@ -40,20 +40,20 @@ test('execute predicate success path', async () => {
   const result = await runAgent(schoolAgent, { question: 'What is 5 + 6?' });
   assert.equal(result.status, 'completed');
   assert.equal(result.output.answer, '11');
-  assert.equal(result.trace[2].branch, 'success');
+  assert.equal(result.trace.find((entry) => entry.type === 'predicate')?.branch, 'success');
 });
 
 test('execute predicate failure with mocked llm fallback', async () => {
   const result = await runAgent(schoolAgent, { question: 'What is a nebula?' });
   assert.equal(result.status, 'completed');
   assert.equal(result.output.answer, 'I do not know that one yet.');
-  assert.equal(result.trace[2].branch, 'failure');
+  assert.equal(result.trace.find((entry) => entry.type === 'predicate')?.branch, 'failure');
 });
 
 test('decision, loop, memory and tool nodes execute', async () => {
   const graph = {
     version: 1,
-    metadata: { name: 'workflow', inputs: ['question'], outputs: ['answer'] },
+    metadata: { name: 'workflow', inputs: ['question', 'items'], outputs: ['answer'] },
     nodes: [
       { id: 'start', type: 'start', label: 'Start', config: {} },
       { id: 'input', type: 'input', label: 'Input', config: { variable: 'question' } },

@@ -21,6 +21,67 @@ const BUILTINS = {
   }
 };
 
+function evaluateArithmetic(expression) {
+  const tokens = String(expression)
+    .replace(/\s+/g, '')
+    .match(/\d+(?:\.\d+)?|[()+\-*/]/g);
+  if (!tokens || tokens.join('') !== String(expression).replace(/\s+/g, '')) {
+    throw new Error('Calculator only supports arithmetic input.');
+  }
+
+  let index = 0;
+
+  function parseExpression() {
+    let value = parseTerm();
+    while (tokens[index] === '+' || tokens[index] === '-') {
+      const operator = tokens[index];
+      index += 1;
+      const next = parseTerm();
+      value = operator === '+' ? value + next : value - next;
+    }
+    return value;
+  }
+
+  function parseTerm() {
+    let value = parseFactor();
+    while (tokens[index] === '*' || tokens[index] === '/') {
+      const operator = tokens[index];
+      index += 1;
+      const next = parseFactor();
+      value = operator === '*' ? value * next : value / next;
+    }
+    return value;
+  }
+
+  function parseFactor() {
+    const token = tokens[index];
+    if (token === '(') {
+      index += 1;
+      const value = parseExpression();
+      if (tokens[index] !== ')') {
+        throw new Error('Unbalanced calculator expression.');
+      }
+      index += 1;
+      return value;
+    }
+    if (token === '-') {
+      index += 1;
+      return -parseFactor();
+    }
+    if (!token || Number.isNaN(Number(token))) {
+      throw new Error('Calculator only supports arithmetic input.');
+    }
+    index += 1;
+    return Number(token);
+  }
+
+  const value = parseExpression();
+  if (index !== tokens.length) {
+    throw new Error('Calculator only supports arithmetic input.');
+  }
+  return value;
+}
+
 function clone(value) {
   return structuredClone(value);
 }
@@ -158,11 +219,7 @@ function executeKnowledgePredicate(ir, predicate, args, context, depth = 0) {
       const callArg = args[index];
       if (isVariableToken(headArg)) {
         const key = headArg.slice(1);
-        if (callArg && callArg.__output) {
-          env[key] = callArg;
-        } else {
-          env[key] = callArg;
-        }
+        env[key] = callArg;
         continue;
       }
       if (headArg !== callArg) {
@@ -276,10 +333,7 @@ async function invokeTool(node, state, options) {
   const request = renderTemplate(node.config?.requestTemplate, state.variables);
   const adapter = options.toolAdapter ?? (async (toolName, toolRequest) => {
     if (toolName === 'calculator') {
-      if (!/^[0-9+\-*/ ().]+$/.test(toolRequest)) {
-        throw new Error('Calculator only supports arithmetic input.');
-      }
-      return Function(`"use strict"; return (${toolRequest});`)();
+      return evaluateArithmetic(toolRequest);
     }
     return { tool: toolName, request: toolRequest };
   });
@@ -431,9 +485,6 @@ export async function runAgent(agent, input, options = {}) {
       case 'end':
         break;
       case 'output':
-        if (node.config?.variable) {
-          state.variables[node.config.variable] = state.variables[node.config.variable];
-        }
         break;
       case 'predicate':
         result = await invokePredicate(ir, node, state, options);
@@ -480,9 +531,15 @@ export async function runAgent(agent, input, options = {}) {
 
     traceEntry.variables = clone(state.variables);
     if (!result.success) {
-      runtimeStates[currentId] = 'failed';
+      const fallbackTarget = result.branch ? decideNext(ir, node.id, result.branch) : null;
       traceEntry.error = result.error ?? 'Execution failed.';
       state.trace.push(traceEntry);
+      if (fallbackTarget) {
+        runtimeStates[currentId] = 'completed';
+        currentId = fallbackTarget;
+        continue;
+      }
+      runtimeStates[currentId] = 'failed';
       status = 'failed';
       break;
     }

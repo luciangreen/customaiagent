@@ -1,29 +1,161 @@
 {
-          "version": 1,
-          "metadata": {
-            "name": "research_agent",
-            "inputs": ["question"],
-            "outputs": ["answer"],
-            "llmProfile": "mock-research"
-          },
-          "nodes": [
-            { "id": "start", "type": "start", "label": "Start", "x": 80, "y": 80, "shape": "circle", "icon": "◉", "config": {} },
-            { "id": "input", "type": "input", "label": "Question", "x": 80, "y": 220, "shape": "parallelogram", "icon": "⇢", "config": { "variable": "question" } },
-            { "id": "claims", "type": "llm", "label": "Identify claims", "x": 80, "y": 360, "shape": "hexagon", "icon": "✦", "config": { "model": "mock-research", "systemPrompt": "Extract claims.", "promptTemplate": "{{question}}", "inputVariables": ["question"], "outputVariable": "claims", "structuredSchema": "", "retryCount": 1, "errorBehaviour": "failure", "mockResponse": "claim one" } },
-            { "id": "evidence", "type": "tool", "label": "Retrieve evidence", "x": 320, "y": 360, "shape": "trapezoid", "icon": "🛠", "config": { "tool": "web-search", "requestTemplate": "{{claims}}", "outputVariable": "evidence" } },
-            { "id": "answer", "type": "llm", "label": "Write explanation", "x": 320, "y": 520, "shape": "hexagon", "icon": "✦", "config": { "model": "mock-research", "systemPrompt": "Explain using the evidence.", "promptTemplate": "Question: {{question}}
-Evidence: {{evidence}}", "inputVariables": ["question", "evidence"], "outputVariable": "answer", "structuredSchema": "", "retryCount": 1, "errorBehaviour": "failure", "mockResponse": "Here is the explanation." } },
-            { "id": "output", "type": "output", "label": "Answer", "x": 320, "y": 680, "shape": "parallelogram", "icon": "⇠", "config": { "variable": "answer" } },
-            { "id": "end", "type": "end", "label": "End", "x": 320, "y": 820, "shape": "circle", "icon": "◎", "config": {} }
-          ],
-          "connections": [
-            { "id": "c1", "from": "start", "to": "input", "kind": "control" },
-            { "id": "c2", "from": "input", "to": "claims", "kind": "control" },
-            { "id": "c3", "from": "claims", "to": "evidence", "kind": "control" },
-            { "id": "c4", "from": "evidence", "to": "answer", "kind": "control" },
-            { "id": "c5", "from": "answer", "to": "output", "kind": "control" },
-            { "id": "c6", "from": "output", "to": "end", "kind": "control" }
-          ],
-          "knowledge": { "facts": [], "rules": [] },
-          "subAgents": {}
-        }
+  "version": 1,
+  "metadata": {
+    "name": "research_agent",
+    "inputs": [
+      "question"
+    ],
+    "outputs": [
+      "answer"
+    ],
+    "llmProfile": "mock-research"
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "label": "Start",
+      "x": 80,
+      "y": 80,
+      "shape": "circle",
+      "icon": "◉",
+      "config": {}
+    },
+    {
+      "id": "input",
+      "type": "input",
+      "label": "Question",
+      "x": 80,
+      "y": 220,
+      "shape": "parallelogram",
+      "icon": "⇢",
+      "config": {
+        "variable": "question"
+      }
+    },
+    {
+      "id": "claims",
+      "type": "llm",
+      "label": "Identify claims",
+      "x": 80,
+      "y": 360,
+      "shape": "hexagon",
+      "icon": "✦",
+      "config": {
+        "model": "mock-research",
+        "systemPrompt": "Extract claims.",
+        "promptTemplate": "{{question}}",
+        "inputVariables": [
+          "question"
+        ],
+        "outputVariable": "claims",
+        "structuredSchema": "",
+        "retryCount": 1,
+        "errorBehaviour": "failure",
+        "mockResponse": "claim one"
+      }
+    },
+    {
+      "id": "evidence",
+      "type": "tool",
+      "label": "Retrieve evidence",
+      "x": 320,
+      "y": 360,
+      "shape": "trapezoid",
+      "icon": "🛠",
+      "config": {
+        "tool": "web-search",
+        "requestTemplate": "{{claims}}",
+        "outputVariable": "evidence"
+      }
+    },
+    {
+      "id": "answer",
+      "type": "llm",
+      "label": "Write explanation",
+      "x": 320,
+      "y": 520,
+      "shape": "hexagon",
+      "icon": "✦",
+      "config": {
+        "model": "mock-research",
+        "systemPrompt": "Explain using the evidence.",
+        "promptTemplate": "Question: {{question}}\\nEvidence: {{evidence}}",
+        "inputVariables": [
+          "question",
+          "evidence"
+        ],
+        "outputVariable": "answer",
+        "structuredSchema": "",
+        "retryCount": 1,
+        "errorBehaviour": "failure",
+        "mockResponse": "Here is the explanation."
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "label": "Answer",
+      "x": 320,
+      "y": 680,
+      "shape": "parallelogram",
+      "icon": "⇠",
+      "config": {
+        "variable": "answer"
+      }
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "label": "End",
+      "x": 320,
+      "y": 820,
+      "shape": "circle",
+      "icon": "◎",
+      "config": {}
+    }
+  ],
+  "connections": [
+    {
+      "id": "c1",
+      "from": "start",
+      "to": "input",
+      "kind": "control"
+    },
+    {
+      "id": "c2",
+      "from": "input",
+      "to": "claims",
+      "kind": "control"
+    },
+    {
+      "id": "c3",
+      "from": "claims",
+      "to": "evidence",
+      "kind": "control"
+    },
+    {
+      "id": "c4",
+      "from": "evidence",
+      "to": "answer",
+      "kind": "control"
+    },
+    {
+      "id": "c5",
+      "from": "answer",
+      "to": "output",
+      "kind": "control"
+    },
+    {
+      "id": "c6",
+      "from": "output",
+      "to": "end",
+      "kind": "control"
+    }
+  ],
+  "knowledge": {
+    "facts": [],
+    "rules": []
+  },
+  "subAgents": {}
+}

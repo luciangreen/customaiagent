@@ -5,7 +5,7 @@
   "type": "module",
   "main": "js/runtime.js",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test tests/*.js"
   },
   "keywords": [
     "prolog",

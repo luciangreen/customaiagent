@@ -92,10 +92,18 @@ function readFieldValue(definition, element) {
     return Number(element.value);
   }
   if (definition.type === 'json') {
-    return element.value ? JSON.parse(element.value) : [];
+    try {
+      return element.value ? JSON.parse(element.value) : [];
+    } catch (error) {
+      throw new Error(`${definition.label} must be valid JSON: ${error.message}`);
+    }
   }
   if ((definition.name === 'inputMappings' || definition.name === 'outputMappings') && element.value) {
-    return JSON.parse(element.value);
+    try {
+      return JSON.parse(element.value);
+    } catch (error) {
+      throw new Error(`${definition.label} must be valid JSON: ${error.message}`);
+    }
   }
   return element.value;
 }
@@ -138,12 +146,16 @@ export function renderPropertyEditor({ container, graph, selectedNode, onUpdate,
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    const nextNode = structuredClone(selectedNode);
-    nextNode.label = labelInput.value || nextNode.label;
-    for (const { definition, control } of controls.values()) {
-      nextNode.config[definition.name] = readFieldValue(definition, control);
+    try {
+      const nextNode = structuredClone(selectedNode);
+      nextNode.label = labelInput.value || nextNode.label;
+      for (const { definition, control } of controls.values()) {
+        nextNode.config[definition.name] = readFieldValue(definition, control);
+      }
+      onUpdate(nextNode);
+    } catch (error) {
+      window.alert(error.message);
     }
-    onUpdate(nextNode);
   });
 
   const actions = document.createElement('div');

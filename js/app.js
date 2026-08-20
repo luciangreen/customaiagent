@@ -137,10 +137,14 @@ function downloadFile(name, content, type) {
 }
 
 function parseKnowledgeEditors() {
-  graph.knowledge = {
-    facts: JSON.parse(elements.factsEditor.value || '[]'),
-    rules: JSON.parse(elements.rulesEditor.value || '[]')
-  };
+  try {
+    graph.knowledge = {
+      facts: JSON.parse(elements.factsEditor.value || '[]'),
+      rules: JSON.parse(elements.rulesEditor.value || '[]')
+    };
+  } catch (error) {
+    throw new Error(`Knowledge editors must contain valid JSON: ${error.message}`);
+  }
 }
 
 function getIR() {
@@ -231,18 +235,30 @@ elements.runButton.addEventListener('click', async () => {
 });
 
 elements.exportJsonButton.addEventListener('click', () => {
-  parseKnowledgeEditors();
-  downloadFile(`${graph.metadata.name}.agent.json`, JSON.stringify(graph, null, 2), 'application/json');
+  try {
+    parseKnowledgeEditors();
+    downloadFile(`${graph.metadata.name}.agent.json`, JSON.stringify(graph, null, 2), 'application/json');
+  } catch (error) {
+    elements.traceOutput.textContent = `Export failed: ${error.message}`;
+  }
 });
 
 elements.exportPrologButton.addEventListener('click', () => {
-  const ir = getIR();
-  downloadFile(`${graph.metadata.name}.pl`, compileIRToProlog(ir), 'text/plain');
+  try {
+    const ir = getIR();
+    downloadFile(`${graph.metadata.name}.pl`, compileIRToProlog(ir), 'text/plain');
+  } catch (error) {
+    elements.traceOutput.textContent = `Export failed: ${error.message}`;
+  }
 });
 
 elements.exportJsButton.addEventListener('click', () => {
-  const ir = getIR();
-  downloadFile(`${graph.metadata.name}.js`, compileIRToJavaScript(ir), 'text/javascript');
+  try {
+    const ir = getIR();
+    downloadFile(`${graph.metadata.name}.js`, compileIRToJavaScript(ir), 'text/javascript');
+  } catch (error) {
+    elements.traceOutput.textContent = `Export failed: ${error.message}`;
+  }
 });
 
 elements.importButton.addEventListener('click', () => elements.importFile.click());
@@ -252,8 +268,12 @@ elements.importFile.addEventListener('change', async (event) => {
   if (!file) {
     return;
   }
-  const text = await file.text();
-  setGraph(JSON.parse(text));
+  try {
+    const text = await file.text();
+    setGraph(JSON.parse(text));
+  } catch (error) {
+    elements.traceOutput.textContent = `Import failed: ${error.message}`;
+  }
 });
 
 elements.connectButton.addEventListener('click', () => {

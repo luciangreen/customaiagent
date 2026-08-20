@@ -17,7 +17,7 @@ Browser-based MVP for building custom AI agents as visual graphs and compiling t
 
 ## Run locally
 
-Open `/home/runner/work/customaiagent/customaiagent/index.html` in a browser, or serve the repository root with any static file server.
+Open `index.html` in a browser from the repository root, or serve the repository root with any static file server.
 
 To run the automated tests:
 
