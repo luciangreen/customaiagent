@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Custom AI Agent Builder</title>
+    <link rel="stylesheet" href="./css/app.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="toolbar">
+        <div class="toolbar__brand">
+          <label>
+            Agent name
+            <input id="agent-name" type="text" value="school_agent" />
+          </label>
+        </div>
+        <div class="toolbar__controls">
+          <button id="validate-button" type="button">Validate</button>
+          <button id="run-button" type="button">Run</button>
+          <button id="prolog-button" type="button">Prolog</button>
+          <button id="export-json-button" type="button">Export JSON</button>
+          <button id="export-prolog-button" type="button">Export Prolog</button>
+          <button id="export-js-button" type="button">Export JS</button>
+          <button id="import-button" type="button">Import</button>
+          <button id="undo-button" type="button">Undo</button>
+          <button id="redo-button" type="button">Redo</button>
+          <label>
+            Example
+            <select id="example-select">
+              <option value="school_agent">School agent</option>
+              <option value="classifier_agent">Classifier agent</option>
+              <option value="research_agent">Research agent</option>
+            </select>
+          </label>
+          <button id="load-example-button" type="button">Load</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="palette" aria-label="Programming shapes">
+          <h2>Shapes</h2>
+          <div id="palette-items" class="palette__items"></div>
+          <section class="palette__section">
+            <h3>Connections</h3>
+            <label>
+              Type
+              <select id="connection-kind">
+                <option value="control">control</option>
+                <option value="success">success</option>
+                <option value="failure">failure</option>
+                <option value="true">true</option>
+                <option value="false">false</option>
+                <option value="loop">loop</option>
+              </select>
+            </label>
+            <button id="connect-button" type="button">Connect from selected</button>
+            <p id="connect-status" class="hint">Select a source node first.</p>
+          </section>
+          <section class="palette__section">
+            <h3>Run input</h3>
+            <textarea id="run-input" rows="6">{"question":"What is 5 + 6?"}</textarea>
+            <p class="hint">JSON object or raw string for the first input variable.</p>
+          </section>
+        </aside>
+
+        <section class="workspace-panel">
+          <div class="workspace-toolbar">
+            <span>Workspace</span>
+            <label>
+              Zoom
+              <input id="zoom-range" type="range" min="60" max="160" value="100" />
+            </label>
+          </div>
+          <div id="workspace" class="workspace" tabindex="0" aria-label="Agent workspace">
+            <svg id="connections-layer" class="connections-layer" aria-hidden="true"></svg>
+          </div>
+        </section>
+
+        <aside class="properties" aria-label="Properties and run output">
+          <section>
+            <h2>Properties</h2>
+            <div id="property-editor"></div>
+          </section>
+          <section>
+            <h2>Knowledge</h2>
+            <label>
+              Facts (JSON array)
+              <textarea id="facts-editor" rows="7"></textarea>
+            </label>
+            <label>
+              Rules (JSON array)
+              <textarea id="rules-editor" rows="7"></textarea>
+            </label>
+          </section>
+          <section>
+            <h2>Generated Prolog</h2>
+            <textarea id="prolog-output" rows="10" readonly></textarea>
+          </section>
+          <section>
+            <h2>Run Trace / Errors</h2>
+            <pre id="trace-output"></pre>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <input id="import-file" type="file" accept=".json,.agent.json" hidden />
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

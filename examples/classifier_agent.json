@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "metadata": {
+    "name": "classifier_agent",
+    "inputs": ["question"],
+    "outputs": ["category"],
+    "llmProfile": "mock-classifier"
+  },
+  "nodes": [
+    { "id": "start", "type": "start", "label": "Start", "x": 120, "y": 80, "shape": "circle", "icon": "◉", "config": {} },
+    { "id": "input", "type": "input", "label": "Question", "x": 120, "y": 220, "shape": "parallelogram", "icon": "⇢", "config": { "variable": "question" } },
+    { "id": "llm", "type": "llm", "label": "Classify", "x": 120, "y": 360, "shape": "hexagon", "icon": "✦", "config": { "model": "mock-classifier", "systemPrompt": "Return only math or other.", "promptTemplate": "{{question}}", "inputVariables": ["question"], "outputVariable": "category", "structuredSchema": "", "retryCount": 1, "errorBehaviour": "failure", "mockResponse": "math" } },
+    { "id": "output", "type": "output", "label": "Category", "x": 120, "y": 500, "shape": "parallelogram", "icon": "⇠", "config": { "variable": "category" } },
+    { "id": "end", "type": "end", "label": "End", "x": 120, "y": 640, "shape": "circle", "icon": "◎", "config": {} }
+  ],
+  "connections": [
+    { "id": "c1", "from": "start", "to": "input", "kind": "control" },
+    { "id": "c2", "from": "input", "to": "llm", "kind": "control" },
+    { "id": "c3", "from": "llm", "to": "output", "kind": "control" },
+    { "id": "c4", "from": "output", "to": "end", "kind": "control" }
+  ],
+  "knowledge": { "facts": [], "rules": [] },
+  "subAgents": {}
+}
