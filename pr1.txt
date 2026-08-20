@@ -1,0 +1,1546 @@
+GitHub Agent Prolog Program Requirements — Visual Custom AI Agent Builder
+
+1. Purpose
+
+Create a browser-based visual programming environment for building custom AI agents composed of Prolog logic plus LLM calls.
+
+Users program an agent by dragging and dropping geometric programming elements onto a JavaScript webpage, connecting them into a graph, configuring their behaviour, and compiling the graph into a Prolog program.
+
+The resulting agent must be executable in two environments:
+
+1. SWI-Prolog, as generated Prolog source.
+2. JavaScript in the browser, through a JavaScript execution layer that implements or interprets the supported Prolog-agent constructs.
+
+The system should make agent programming accessible without requiring the user to manually write Prolog while still exposing the generated Prolog to advanced users.
+
+⸻
+
+2. Core Concept
+
+Represent an AI agent as a directed graph:
+
+Input
+  |
+  v
+[Understand]
+  |
+  v
+{Decision}
+ /        \
+v          v
+[Prolog] [LLM]
+  \        /
+   v      v
+   [Combine]
+       |
+       v
+     Output
+
+Each geometric object represents a programming operation.
+
+Connections between shapes represent:
+
+* control flow;
+* data flow;
+* Prolog variable bindings;
+* agent state;
+* LLM messages;
+* success/failure paths;
+* alternative choices;
+* loops;
+* tool calls.
+
+The diagram is the authoritative visual representation of the program.
+
+⸻
+
+3. Primary User Workflow
+
+The application must allow the user to:
+
+1. Open the visual agent editor.
+2. Drag programming shapes from a palette onto a workspace.
+3. Connect compatible shapes.
+4. Select a shape and configure its parameters.
+5. Define Prolog predicates, rules, prompts and LLM settings.
+6. Validate the agent graph.
+7. Generate equivalent Prolog.
+8. Inspect or edit the generated Prolog where appropriate.
+9. Run the agent.
+10. Enter an input message.
+11. Observe individual execution steps.
+12. Observe Prolog reasoning and LLM calls separately.
+13. View the final agent response.
+14. Export the agent definition and generated Prolog.
+15. Reload an exported agent and continue editing it.
+
+⸻
+
+4. Visual Programming Language
+
+4.1 Geometric Shape Vocabulary
+
+Use a small, consistent vocabulary of geometric shapes.
+
+Circle — Start / End
+
+Examples:
+
+(Start)
+(End)
+
+Start identifies the entry point.
+
+End terminates execution and optionally returns a value.
+
+⸻
+
+Rectangle — Deterministic Operation
+
+Represents an ordinary deterministic computation.
+
+Examples:
+
+[Normalise text]
+[Calculate score]
+[Append history]
+[Extract field]
+
+Generated conceptual Prolog:
+
+normalise_text(Input, Output).
+
+⸻
+
+Rounded Rectangle — Prolog Predicate Call
+
+Represents a Prolog predicate invocation.
+
+Example:
+
+╭──────────────────╮
+│ classify(X, C)   │
+╰──────────────────╯
+
+Generated Prolog:
+
+classify(X, C)
+
+The UI must support arbitrary predicate names and arguments.
+
+⸻
+
+Diamond — Decision
+
+Represents a condition or branching operation.
+
+Example:
+
+     <Score > 5?>
+       /     \
+     yes     no
+
+Generated Prolog should preferably use explicit deterministic branching:
+
+decision(Score, Result) :-
+    ( Score > 5 ->
+        high(Result)
+    ;
+        low(Result)
+    ).
+
+Where practical, compilation should transform visual branches into deterministic predicates rather than unnecessarily introducing Prolog choicepoints.
+
+⸻
+
+Hexagon — LLM Call
+
+Represents a call to an LLM.
+
+Example:
+
+ /----------------------\
+| LLM: Analyse Question |
+ \----------------------/
+
+Configuration fields include:
+
+* model;
+* system instruction;
+* prompt template;
+* input variables;
+* expected output;
+* temperature where supported;
+* structured-output schema;
+* timeout;
+* retry policy.
+
+Conceptual Prolog:
+
+llm_call(
+    analyse_question,
+    Input,
+    Response
+).
+
+⸻
+
+Parallelogram — Input / Output
+
+Examples:
+
+/Input: User Message/
+/Output: Answer/
+
+Inputs and outputs can contain:
+
+* strings;
+* numbers;
+* atoms;
+* lists;
+* dictionaries;
+* Prolog terms;
+* JSON-compatible data.
+
+⸻
+
+Cylinder — Memory
+
+Represents agent memory or persistent state.
+
+Examples:
+
+[Conversation Memory]
+[Rules]
+[Knowledge]
+
+Operations:
+
+read
+write
+append
+replace
+delete
+query
+
+⸻
+
+Double Rectangle — Sub-Agent
+
+Calls another defined agent.
+
+Example:
+
+[[Research Agent]]
+
+Conceptual Prolog:
+
+call_agent(research_agent, Input, Output).
+
+Sub-agents may themselves contain Prolog and LLM operations.
+
+⸻
+
+Trapezoid — Tool Call
+
+Represents an external tool.
+
+Examples:
+
+Web Search
+Calculator
+Database
+HTTP API
+File Reader
+Custom JavaScript
+
+Conceptual Prolog:
+
+tool_call(search, Query, Result).
+
+⸻
+
+Triangle — Rule
+
+Represents a logical rule or assertion.
+
+Example:
+
+     /\
+    /  \
+   /Rule\
+
+For example:
+
+bird(X) -> can_fly(X)
+
+can compile to:
+
+can_fly(X) :-
+    bird(X).
+
+⸻
+
+Stacked Shape — Collection / Find
+
+Represents operations over multiple possible values.
+
+Examples:
+
+Find all
+Filter
+Map
+Select first
+Sort
+Rank
+
+The generated Prolog may use deterministic collection operations internally.
+
+The compiler should avoid unnecessary residual choicepoints.
+
+⸻
+
+5. Connections
+
+Connections must be typed.
+
+At minimum support:
+
+control
+data
+true
+false
+success
+failure
+choice
+loop
+memory
+exception
+
+Visual differences should make branch types obvious.
+
+For example:
+
+             true
+[Check] --------------> [Accept]
+   |
+   | false
+   v
+[Reject]
+
+Connections may transport variables.
+
+Example:
+
+[Read Question]
+     |
+ Question
+     v
+[LLM Analyse]
+     |
+ Analysis
+     v
+[classify(Analysis,Class)]
+
+⸻
+
+6. Variables
+
+The visual language must support Prolog-style variables.
+
+Example:
+
+Question
+Analysis
+Category
+Answer
+
+Compilation may produce:
+
+agent(Question, Answer) :-
+    llm_call(analyse, Question, Analysis),
+    classify(Analysis, Category),
+    produce_answer(Category, Analysis, Answer).
+
+The editor should indicate:
+
+* where variables originate;
+* where variables are consumed;
+* variables that are never used;
+* variables used before being bound;
+* conflicting bindings.
+
+⸻
+
+7. Agent Definition
+
+Each agent has metadata:
+
+agent_definition(
+    AgentName,
+    Inputs,
+    Outputs,
+    Options
+).
+
+Example:
+
+agent_definition(
+    homework_helper,
+    [question],
+    [answer],
+    [
+        memory(conversation),
+        llm(true)
+    ]
+).
+
+⸻
+
+8. LLM Interface
+
+Define one primary Prolog abstraction:
+
+llm_call(+Request, -Response).
+
+A richer form should also be supported:
+
+llm_call(
+    +Model,
+    +SystemPrompt,
+    +Prompt,
+    +Options,
+    -Response
+).
+
+Example:
+
+llm_call(
+    default,
+    "You classify questions.",
+    Prompt,
+    [format(json)],
+    Response
+).
+
+LLM provider-specific implementation details must be isolated from agent logic.
+
+The agent graph should therefore not depend on one particular model provider.
+
+⸻
+
+9. Prompt Templates
+
+LLM shapes must support interpolation.
+
+Example:
+
+Classify the following question:
+{{Question}}
+Return one of:
+math
+science
+history
+other
+
+Compilation:
+
+format(
+    string(Prompt),
+    "Classify the following question:~n~n~s",
+    [Question]
+).
+
+The JavaScript runtime should implement equivalent behaviour.
+
+⸻
+
+10. Structured LLM Responses
+
+An LLM node can optionally define an expected structure.
+
+Example:
+
+{
+  "category": "string",
+  "confidence": "number",
+  "reason": "string"
+}
+
+The runtime must validate the returned object before allowing execution to continue.
+
+Invalid structured output may:
+
+* retry;
+* follow an error branch;
+* return a validation error.
+
+⸻
+
+11. Prolog Rules
+
+Users must be able to create Prolog knowledge independently from control flow.
+
+Example visual rule:
+
+apple(X)
++
+red(X)
+       |
+       v
+ripe_apple(X)
+
+Generated Prolog:
+
+ripe_apple(X) :-
+    apple(X),
+    red(X).
+
+Multiple rules can define the same predicate.
+
+⸻
+
+12. Facts
+
+Provide a fact editor.
+
+Example:
+
+fruit(apple).
+fruit(orange).
+fruit(pear).
+colour(apple, red).
+colour(orange, orange).
+
+Facts should also be representable visually where useful.
+
+⸻
+
+13. Agent Example
+
+A simple school-question agent might visually contain:
+
+(Start)
+   |
+   v
+/Input Question/
+   |
+   v
+<Known locally?>
+  /       \
+yes       no
+ |         |
+ v         v
+[Prolog]  /LLM\
+ |         |
+ +----+----+
+      |
+      v
+/Answer/
+      |
+     (End)
+
+Generated Prolog:
+
+school_agent(Question, Answer) :-
+    local_answer(Question, LocalResult),
+    choose_answer(
+        LocalResult,
+        Question,
+        Answer
+    ).
+choose_answer(found(Answer), _, Answer).
+choose_answer(not_found, Question, Answer) :-
+    llm_call(
+        default,
+        "Answer at primary-school level.",
+        Question,
+        [],
+        Answer
+    ).
+
+⸻
+
+14. Hybrid Prolog + LLM Reasoning
+
+The system must specifically support patterns where the LLM and Prolog perform different roles.
+
+Examples include:
+
+LLM -> extract facts -> Prolog reason
+Prolog -> identify missing information -> LLM obtain information
+LLM -> propose alternatives -> Prolog validate alternatives
+Prolog -> construct constraints -> LLM explain result
+LLM -> natural-language interpretation
+Prolog -> deterministic decision
+LLM -> natural-language presentation
+
+The architecture should encourage logical processing to remain in Prolog rather than using LLM calls for operations easily represented as rules.
+
+⸻
+
+15. Agent Loops
+
+Support bounded loops.
+
+Examples:
+
+for each item
+repeat until
+while
+retry
+map
+
+Example:
+
+For each document:
+    extract facts with LLM
+    validate facts with Prolog
+
+Generated Prolog should preferably use recursion or deterministic looping.
+
+⸻
+
+16. LLM Retry
+
+An LLM node may specify:
+
+Retries: 3
+On failure:
+    retry
+    error branch
+    use fallback model
+    return default
+
+Retries must be bounded.
+
+Infinite automatic LLM retry loops are prohibited.
+
+⸻
+
+17. Agent Memory
+
+Provide at least:
+
+temporary memory
+conversation memory
+agent memory
+session memory
+persistent memory
+
+Prolog abstraction:
+
+memory_get(Key, Value).
+memory_put(Key, Value).
+memory_append(Key, Value).
+memory_delete(Key).
+
+The browser implementation can initially use:
+
+JavaScript objects
+sessionStorage
+localStorage
+IndexedDB
+
+depending on persistence requirements.
+
+⸻
+
+18. Execution State
+
+Represent runtime state explicitly.
+
+Recommended core form:
+
+run_agent(
+    +Agent,
+    +Input,
+    +State0,
+    -Output,
+    -State
+).
+
+This avoids hidden mutable state and simplifies JavaScript translation.
+
+⸻
+
+19. JavaScript Runtime
+
+Create a JavaScript runtime capable of executing the supported agent representation.
+
+The preferred architecture is:
+
+Visual Graph
+     |
+     v
+Agent Intermediate Representation
+    / \
+   /   \
+  v     v
+Prolog  JavaScript
+
+Do not independently compile the graphical program twice.
+
+Both targets must derive from the same intermediate representation.
+
+⸻
+
+20. Intermediate Representation
+
+Define a JSON-compatible IR.
+
+Example:
+
+{
+  "agent": "classifier",
+  "inputs": ["Question"],
+  "outputs": ["Answer"],
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "input",
+      "output": "Question"
+    },
+    {
+      "id": "n2",
+      "type": "llm",
+      "input": "Question",
+      "output": "Category"
+    },
+    {
+      "id": "n3",
+      "type": "predicate",
+      "predicate": "answer",
+      "args": ["Category", "Answer"]
+    }
+  ]
+}
+
+The IR is the canonical stored representation of the visual agent.
+
+⸻
+
+21. JavaScript Prolog Execution
+
+The first release may implement one of two approaches:
+
+Mode A — Restricted Prolog Interpreter
+
+Implement the supported Prolog subset directly in JavaScript.
+
+Support:
+
+facts
+rules
+variables
+unification
+predicate calls
+recursion
+lists
+conditionals
+basic arithmetic
+deterministic collections
+
+Mode B — Compile Prolog IR to JavaScript
+
+Translate supported predicates into JavaScript functions.
+
+Example:
+
+adult(X) :-
+    age(X, Age),
+    Age >= 18.
+
+may become conceptually:
+
+function adult(x, state) {
+    const age = lookupAge(x, state);
+    return age >= 18;
+}
+
+The architecture should permit either implementation.
+
+⸻
+
+22. Browser UI
+
+Implement as a normal HTML/CSS/JavaScript application.
+
+The main screen should contain:
+
++-------------------------------------------------------------+
+| Agent name | Run | Stop | Validate | Prolog | Export        |
++------------+------------------------------------------------+
+| Shapes     |                                                 |
+|            |                 Workspace                       |
+| Start      |                                                 |
+| Predicate  |        [Node] ---> <Decision> ---> [Node]      |
+| Decision   |                                                 |
+| LLM        |                                                 |
+| Memory     |                                                 |
+| Tool       |                                                 |
+| Agent      |                                                 |
+| Output     |                                                 |
++------------+------------------------------------------------+
+| Properties / Run Trace / Errors                              |
++-------------------------------------------------------------+
+
+⸻
+
+23. Drag and Drop
+
+Users must be able to:
+
+* drag shapes onto the canvas;
+* reposition shapes;
+* connect shapes;
+* disconnect shapes;
+* duplicate shapes;
+* delete shapes;
+* multi-select shapes;
+* copy/paste;
+* undo;
+* redo;
+* zoom;
+* pan.
+
+Connections should remain attached while nodes move.
+
+⸻
+
+24. Shape Configuration
+
+Clicking a shape opens a property editor.
+
+For an LLM shape:
+
+Name
+Model
+System Prompt
+Prompt
+Inputs
+Output
+Structured Format
+Retry
+Error Behaviour
+
+For a predicate shape:
+
+Predicate
+Arguments
+Expected determinism
+Success path
+Failure path
+
+⸻
+
+25. Generated Prolog View
+
+Provide a code tab displaying generated Prolog.
+
+Example:
+
+:- module(my_agent, [run/2]).
+run(Input, Output) :-
+    step_1(Input, Parsed),
+    step_2(Parsed, Category),
+    step_3(Category, Output).
+step_1(Input, Parsed) :-
+    llm_call(
+        default,
+        "Extract the important concepts.",
+        Input,
+        [],
+        Parsed
+    ).
+step_2(Parsed, Category) :-
+    classify(Parsed, Category).
+step_3(Category, Output) :-
+    response(Category, Output).
+
+The generated source must be formatted and readable.
+
+⸻
+
+26. Round-Tripping
+
+The first release does not need to reconstruct arbitrary Prolog programs into diagrams.
+
+Round-trip support is required for the application’s own saved agent format:
+
+Diagram
+   ↓
+IR
+   ↓
+saved JSON
+   ↓
+IR
+   ↓
+Diagram
+
+Generated Prolog is considered a target representation rather than the authoritative editing representation.
+
+⸻
+
+27. Run Trace
+
+When an agent executes, show its path.
+
+Example:
+
+1. Input
+   Question = "What is 5 + 6?"
+2. classify_local/2
+   Result = math
+3. solve_math/2
+   Answer = 11
+4. Output
+   "11"
+
+LLM calls should show:
+
+Prompt
+Model
+Response
+Duration
+Success/error
+
+subject to credential and privacy restrictions.
+
+⸻
+
+28. Visual Runtime Highlighting
+
+While running:
+
+current node -> highlighted
+completed node -> marked
+failed node -> error marker
+unused branch -> muted
+
+The user should be able to understand how an answer was produced without reading generated source code.
+
+⸻
+
+29. Debugging
+
+Support breakpoints on shapes.
+
+At a breakpoint show:
+
+current node
+bound variables
+agent state
+memory
+previous result
+next possible nodes
+
+Commands:
+
+Continue
+Step
+Stop
+Restart
+
+⸻
+
+30. Validation
+
+Before execution detect:
+
+* missing Start;
+* unreachable End;
+* disconnected nodes;
+* undefined predicates;
+* undefined variables;
+* variable used before assignment;
+* invalid branch configuration;
+* loops without termination conditions;
+* malformed LLM templates;
+* malformed JSON schemas;
+* invalid tool configuration;
+* recursive sub-agent cycles;
+* unavailable LLM configuration.
+
+Errors must identify the corresponding visual element.
+
+⸻
+
+31. Determinism Analysis
+
+Where possible classify predicates as:
+
+det
+semidet
+multi
+nondet
+unknown
+
+Display this information in the editor.
+
+Warn when a nondeterministic predicate feeds a node expecting exactly one value.
+
+⸻
+
+32. Choice Handling
+
+Provide explicit visual choice operations rather than relying upon invisible Prolog backtracking.
+
+For example:
+
+[Generate possibilities]
+          |
+          v
+      [Choices]
+       / | \
+      /  |  \
+
+Support:
+
+all
+first
+best
+filter
+rank
+for-each
+
+This makes execution clearer in both Prolog and JavaScript.
+
+⸻
+
+33. Agent-to-Agent Calls
+
+Agents may call other agents.
+
+Example:
+
+call_agent(
+    fact_checker,
+    CandidateAnswer,
+    VerifiedAnswer
+).
+
+The UI should allow an Agent shape to select an existing agent definition.
+
+Prevent uncontrolled recursive agent calls.
+
+⸻
+
+34. Tool Interface
+
+Define a common tool abstraction:
+
+tool_call(
+    +Tool,
+    +Request,
+    -Result
+).
+
+Browser tool plugins should expose a compatible JavaScript interface:
+
+async function toolCall(tool, request) {
+    ...
+}
+
+⸻
+
+35. LLM Credentials
+
+API secrets must never be stored directly inside exported visual programs.
+
+Allow:
+
+environment variables
+server-side proxy
+runtime configuration
+user-provided session credentials
+
+An exported agent may refer to:
+
+credential_profile: "default_llm"
+
+but must not contain the secret itself.
+
+⸻
+
+36. Safe Browser Architecture
+
+Direct browser API calls to an LLM provider should only be permitted when appropriate for that provider and credential model.
+
+The architecture should support a backend proxy:
+
+Browser
+   |
+   v
+Agent API
+   |
+   +----> LLM
+   |
+   +----> tools
+
+This should be the recommended deployment mode for persistent applications.
+
+⸻
+
+37. Files
+
+Recommended project layout:
+
+/
+  index.html
+  css/
+    app.css
+  js/
+    app.js
+    canvas.js
+    nodes.js
+    connections.js
+    properties.js
+    validation.js
+    runtime.js
+    debugger.js
+  compiler/
+    graph_to_ir.js
+    ir_to_prolog.js
+    ir_to_js.js
+  prolog/
+    agent_runtime.pl
+    llm.pl
+    memory.pl
+    tools.pl
+  examples/
+    school_agent.json
+    research_agent.json
+    classifier_agent.json
+  tests/
+    graph_tests.js
+    compiler_tests.js
+    runtime_tests.js
+    prolog_tests.pl
+  PROGRAM_REQUIREMENTS.md
+  README.md
+
+⸻
+
+38. Minimum Prolog Runtime
+
+Provide predicates resembling:
+
+run_agent/3
+run_agent/5
+llm_call/2
+llm_call/5
+tool_call/3
+call_agent/3
+memory_get/2
+memory_put/2
+memory_append/2
+agent_input/3
+agent_output/3
+
+Names may be refined during implementation, but equivalent functionality is required.
+
+⸻
+
+39. JavaScript Runtime API
+
+Provide a simple API:
+
+const result = await runAgent(agent, {
+    question: "Why is the sky blue?"
+});
+
+and optionally:
+
+const result = await runAgent(agent, input, {
+    trace: true,
+    breakpoints: true
+});
+
+⸻
+
+40. Example Hybrid Agent
+
+A visual research agent could implement:
+
+User question
+     |
+     v
+LLM: identify claims
+     |
+     v
+Prolog: determine required evidence
+     |
+     v
+Tool: retrieve evidence
+     |
+     v
+Prolog: validate evidence
+     |
+     v
+LLM: write explanation
+     |
+     v
+Answer
+
+Generated conceptual Prolog:
+
+research_agent(Question, Answer) :-
+    llm_extract_claims(Question, Claims),
+    required_evidence(Claims, Queries),
+    retrieve_evidence(Queries, Evidence),
+    validate_evidence(Claims, Evidence, Validated),
+    llm_explain(Question, Validated, Answer).
+
+⸻
+
+41. Natural-Language Agent Creation
+
+As a later feature, permit:
+
+"Create an agent that takes a student's question,
+checks whether it can answer with local rules,
+and otherwise asks an LLM."
+
+The system may generate a candidate graph.
+
+The user must be able to inspect and modify the resulting diagram before treating it as the final program.
+
+⸻
+
+42. User-Defined Shapes
+
+Advanced users should eventually be able to package a subgraph as a custom programming block.
+
+For example:
+
++----------------------+
+| Verify LLM Response  |
++----------------------+
+
+internally expands to:
+
+Parse
+  ->
+Validate schema
+  ->
+Check rules
+  ->
+Retry if invalid
+
+This provides reusable high-level agent components.
+
+⸻
+
+43. Templates
+
+Ship example templates:
+
+Chatbot
+Question Answerer
+Classifier
+Research Agent
+Rule-Based Expert
+Teaching Agent
+Document Processor
+Planner
+Prolog + LLM Validator
+Multi-Agent Workflow
+
+Each template must be editable.
+
+⸻
+
+44. Export
+
+Support export as:
+
+.agent.json
+.pl
+.js
+
+Potential later targets:
+
+HTML application
+Node.js package
+ZIP project
+
+The JSON agent definition is the canonical portable format.
+
+⸻
+
+45. Import
+
+Support:
+
+.agent.json
+
+The program must restore:
+
+* nodes;
+* node positions;
+* connections;
+* properties;
+* prompts;
+* rules;
+* agent metadata;
+* sub-agent references.
+
+⸻
+
+46. Testing
+
+Tests must cover at least:
+
+1. create a minimal graph;
+2. save and reload graph;
+3. compile graph to IR;
+4. compile IR to Prolog;
+5. execute generated Prolog;
+6. execute equivalent JavaScript;
+7. compare Prolog and JavaScript outputs;
+8. predicate success;
+9. predicate failure;
+10. decisions;
+11. loops;
+12. Prolog rules;
+13. facts;
+14. LLM mock calls;
+15. structured LLM responses;
+16. memory;
+17. sub-agents;
+18. tool calls;
+19. validation errors;
+20. execution trace.
+
+LLM-dependent automated tests must use mocked responses by default so the test suite does not require paid API calls.
+
+⸻
+
+47. Cross-Runtime Equivalence
+
+An important requirement is:
+
+Given the same deterministic inputs, stored state and mocked LLM/tool responses, execution in Prolog and execution in JavaScript should produce equivalent outputs.
+
+Create cross-runtime tests for this property.
+
+Example:
+
+Agent JSON
+   |         |
+   v         v
+Prolog      JavaScript
+   |         |
+   v         v
+Result A == Result B
+
+⸻
+
+48. Error Reporting
+
+Errors should be understandable from the visual editor.
+
+Example:
+
+Node: "Classify Question"
+Type: Prolog Predicate
+Problem: Variable Category has no producer.
+Connection: output of node 4 -> node 7
+Suggested fix: Connect an output that binds Category.
+
+Compiler errors should include:
+
+agent
+node ID
+node label
+generated predicate where relevant
+reason
+suggested correction
+
+⸻
+
+49. Performance
+
+The visual editor should remain interactive for ordinary agents containing hundreds of nodes.
+
+Avoid recompiling the entire application after every drag operation.
+
+Recompile semantic representations only when:
+
+node configuration changes
+connection changes
+agent definition changes
+run requested
+export requested
+
+⸻
+
+50. Security
+
+Treat all of the following as untrusted:
+
+user prompts
+LLM responses
+imported agent files
+tool outputs
+external API data
+generated Prolog terms
+
+Do not evaluate arbitrary JavaScript from an imported agent by default.
+
+Do not permit unrestricted Prolog goals merely because they occur in imported JSON.
+
+Use explicit allowlists for browser-executable operations.
+
+⸻
+
+51. Accessibility
+
+The graphical programming language must not depend solely on colour.
+
+Each node must have:
+
+shape
+icon
+text label
+type name accessible to screen readers
+
+Provide keyboard alternatives to drag-and-drop where practical.
+
+⸻
+
+52. Initial Release Scope
+
+The BASIC initial release should implement:
+
+visual canvas
+drag/drop
+connections
+Start
+End
+Input
+Output
+Predicate
+Decision
+LLM
+Memory
+Sub-Agent
+basic loops
+facts
+rules
+graph JSON
+graph validation
+IR generation
+Prolog generation
+JavaScript execution
+mock LLM
+real configurable LLM adapter
+runtime trace
+import/export
+tests
+documentation
+
+Advanced autonomous planning, automatic graph generation, arbitrary Prolog import and large plugin ecosystems are outside the first release.
+
+⸻
+
+53. Implementation Priority
+
+Implement in this order:
+
+Stage 1
+Canvas + shapes + connections
+Stage 2
+Graph JSON representation
+Stage 3
+Validation
+Stage 4
+Graph -> IR compiler
+Stage 5
+IR -> Prolog compiler
+Stage 6
+JavaScript runtime
+Stage 7
+Prolog runtime
+Stage 8
+LLM abstraction and mock LLM
+Stage 9
+Real LLM adapter
+Stage 10
+Memory and sub-agents
+Stage 11
+Tracing/debugging
+Stage 12
+Import/export
+Stage 13
+Cross-runtime equivalence tests
+Stage 14
+Examples and documentation
+
+Each stage requires:
+
+* implementation;
+* automated tests;
+* integration with previous stages;
+* documentation;
+* self-review;
+* complete test-suite execution.
+
+Do not alter intended semantics merely to make tests pass.
+
+⸻
+
+54. Acceptance Example
+
+The user must be able to visually construct:
+
+(Start)
+   |
+   v
+/Question/
+   |
+   v
+[known_answer(Question,Answer)]
+   |
+ success ----------------------+
+   |                           |
+ failure                       |
+   v                           |
+ /LLM Answer\                  |
+   |                           |
+   +---------------------------+
+               |
+               v
+           /Answer/
+               |
+             (End)
+
+and obtain generated Prolog broadly equivalent to:
+
+run(Question, Answer) :-
+    determine_answer(Question, Answer).
+determine_answer(Question, Answer) :-
+    known_answer(Question, Known),
+    select_known_answer(Known, Question, Answer).
+select_known_answer(found(Answer), _, Answer).
+select_known_answer(not_found, Question, Answer) :-
+    llm_call(
+        default,
+        "Answer the user's question.",
+        Question,
+        [],
+        Answer
+    ).
+
+The same saved agent must also run through the JavaScript runtime.
+
+⸻
+
+55. Definition of Done
+
+The project is complete when a non-programmer can open the webpage, construct a small AI agent from geometric blocks, configure Prolog rules and LLM calls, run the resulting agent in the browser, inspect its execution, export readable Prolog, save the visual program, reload it later, and obtain equivalent behaviour from the Prolog and JavaScript implementations.
+
+The central design principle is:
+
+The diagram defines the agent, Prolog defines its logical reasoning, LLM calls provide language-model capabilities, and a common intermediate representation allows the same custom AI agent to execute in both Prolog and JavaScript.
