@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "metadata": {
+    "name": "school_agent",
+    "inputs": ["question"],
+    "outputs": ["answer"],
+    "llmProfile": "mock-default"
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "label": "Start",
+      "x": 120,
+      "y": 80,
+      "width": 140,
+      "height": 90,
+      "shape": "circle",
+      "icon": "◉",
+      "config": {}
+    },
+    {
+      "id": "question",
+      "type": "input",
+      "label": "Question",
+      "x": 120,
+      "y": 220,
+      "width": 140,
+      "height": 90,
+      "shape": "parallelogram",
+      "icon": "⇢",
+      "config": {
+        "variable": "question",
+        "source": "input"
+      }
+    },
+    {
+      "id": "known_answer",
+      "type": "predicate",
+      "label": "known_answer(Question,Answer)",
+      "x": 120,
+      "y": 360,
+      "width": 140,
+      "height": 90,
+      "shape": "rounded-rectangle",
+      "icon": "λ",
+      "config": {
+        "predicate": "known_answer",
+        "args": ["$question", "$answer"],
+        "outputVariables": ["answer"],
+        "determinism": "semidet"
+      }
+    },
+    {
+      "id": "llm_answer",
+      "type": "llm",
+      "label": "LLM Answer",
+      "x": 420,
+      "y": 360,
+      "width": 160,
+      "height": 100,
+      "shape": "hexagon",
+      "icon": "✦",
+      "config": {
+        "model": "mock-default",
+        "systemPrompt": "Answer at primary-school level.",
+        "promptTemplate": "Answer the user's question: {{question}}",
+        "inputVariables": ["question"],
+        "outputVariable": "answer",
+        "structuredSchema": "",
+        "retryCount": 2,
+        "errorBehaviour": "failure",
+        "mockResponse": "I do not know that one yet."
+      }
+    },
+    {
+      "id": "answer",
+      "type": "output",
+      "label": "Answer",
+      "x": 300,
+      "y": 520,
+      "width": 140,
+      "height": 90,
+      "shape": "parallelogram",
+      "icon": "⇠",
+      "config": {
+        "variable": "answer"
+      }
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "label": "End",
+      "x": 300,
+      "y": 660,
+      "width": 140,
+      "height": 90,
+      "shape": "circle",
+      "icon": "◎",
+      "config": {}
+    }
+  ],
+  "connections": [
+    { "id": "c1", "from": "start", "to": "question", "kind": "control" },
+    { "id": "c2", "from": "question", "to": "known_answer", "kind": "control" },
+    { "id": "c3", "from": "known_answer", "to": "answer", "kind": "success" },
+    { "id": "c4", "from": "known_answer", "to": "llm_answer", "kind": "failure" },
+    { "id": "c5", "from": "llm_answer", "to": "answer", "kind": "control" },
+    { "id": "c6", "from": "answer", "to": "end", "kind": "control" }
+  ],
+  "knowledge": {
+    "facts": [
+      { "predicate": "known_answer", "args": ["What is 5 + 6?", "11"] },
+      { "predicate": "known_answer", "args": ["What is 2 + 2?", "4"] }
+    ],
+    "rules": []
+  },
+  "subAgents": {
+    "classifier_agent": {
+      "version": 1,
+      "metadata": {
+        "name": "classifier_agent",
+        "inputs": ["question"],
+        "outputs": ["category"],
+        "llmProfile": "mock-classifier"
+      },
+      "nodes": [
+        {
+          "id": "classifier_start",
+          "type": "start",
+          "label": "Start",
+          "x": 0,
+          "y": 0,
+          "shape": "circle",
+          "icon": "◉",
+          "config": {}
+        },
+        {
+          "id": "classifier_input",
+          "type": "input",
+          "label": "Question",
+          "x": 0,
+          "y": 0,
+          "shape": "parallelogram",
+          "icon": "⇢",
+          "config": { "variable": "question" }
+        },
+        {
+          "id": "classifier_llm",
+          "type": "llm",
+          "label": "LLM Classify",
+          "x": 0,
+          "y": 0,
+          "shape": "hexagon",
+          "icon": "✦",
+          "config": {
+            "model": "mock-classifier",
+            "systemPrompt": "Return math or other.",
+            "promptTemplate": "{{question}}",
+            "inputVariables": ["question"],
+            "outputVariable": "category",
+            "structuredSchema": "",
+            "retryCount": 1,
+            "errorBehaviour": "failure",
+            "mockResponse": "other"
+          }
+        },
+        {
+          "id": "classifier_output",
+          "type": "output",
+          "label": "Category",
+          "x": 0,
+          "y": 0,
+          "shape": "parallelogram",
+          "icon": "⇠",
+          "config": { "variable": "category" }
+        },
+        {
+          "id": "classifier_end",
+          "type": "end",
+          "label": "End",
+          "x": 0,
+          "y": 0,
+          "shape": "circle",
+          "icon": "◎",
+          "config": {}
+        }
+      ],
+      "connections": [
+        { "id": "sc1", "from": "classifier_start", "to": "classifier_input", "kind": "control" },
+        { "id": "sc2", "from": "classifier_input", "to": "classifier_llm", "kind": "control" },
+        { "id": "sc3", "from": "classifier_llm", "to": "classifier_output", "kind": "control" },
+        { "id": "sc4", "from": "classifier_output", "to": "classifier_end", "kind": "control" }
+      ],
+      "knowledge": { "facts": [], "rules": [] },
+      "subAgents": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "customaiagent",
+  "version": "1.0.0",
+  "description": "Visual custom AI agent builder for Prolog and LLM workflows",
+  "type": "module",
+  "main": "js/runtime.js",
+  "scripts": {
+    "test": "node --test tests/*.js"
+  },
+  "keywords": [
+    "prolog",
+    "llm",
+    "visual-programming",
+    "agent"
+  ],
+  "author": "",
+  "license": "MIT"
+}
