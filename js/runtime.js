@@ -562,7 +562,9 @@ export async function runAgent(agent, input, options = {}) {
 
     traceEntry.variables = clone(state.variables);
     if (!result.success) {
-      const fallbackTarget = result.branch ? decideNext(ir, node.id, result.branch) : null;
+      const fallbackTarget = node.type === 'llm' && result.branch === 'failure'
+        ? getNextConnection(ir, node.id, ['failure'])?.to ?? null
+        : result.branch ? decideNext(ir, node.id, result.branch) : null;
       traceEntry.error = result.error ?? 'Execution failed.';
       state.trace.push(traceEntry);
       if (fallbackTarget) {
