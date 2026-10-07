@@ -163,8 +163,29 @@ function compileNodeStep(ir, node) {
       const outputVariable = node.config?.outputVariable || 'tool_result';
       return `step_${sanitizePredicate(node.id)}(Vars0, Vars) :-\n    tool_call(${sanitizePredicate(node.config?.tool || 'tool')}, ${toPrologTerm(node.config?.requestTemplate || '')}, ${variableName(outputVariable)}),\n    put_dict(${sanitizePredicate(outputVariable)}, Vars0, ${variableName(outputVariable)}, Vars1),\n    ${nextClause(nextControl)}`;
     }
-    case 'loop':
-      return `step_${sanitizePredicate(node.id)}(Vars0, Vars) :-\n    % Loop nodes are executed by the JavaScript runtime and preserved here as a readable stub.\n    ${passthroughClause(nextControl)}`;
+    case 'loop': {
+      const source = sanitizePredicate(node.config?.sourceVariable || 'items');
+      const target = sanitizePredicate(node.config?.targetVariable || 'results');
+      const itemVariable = variableName(node.config?.itemVariable || 'item');
+      const outputVariable = variableName(node.config?.outputVariable || 'resultItem');
+      const operation = node.config?.operation || 'identity';
+      let helper = '';
+      if (operation === 'identity') {
+      } else if (operation === 'predicate') {
+        const args = node.config?.args ?? [];
+        const inputArg = args.find((arg) => arg === `$${node.config?.itemVariable || 'item'}`);
+        const outputArg = args.find((arg) => arg === `$${node.config?.outputVariable || 'resultItem'}`);
+        if (args.length !== 2 || !inputArg || !outputArg || inputArg === outputArg) {
+          throw new Error(`Loop node ${node.label || node.id} requires exactly two arguments mapped to its item and output variables for Prolog generation.`);
+        }
+        const helperName = `loop_map_${sanitizePredicate(node.id)}`;
+        helper = `\n${helperName}(${itemVariable}, ${outputVariable}) :-\n    ${sanitizePredicate(node.config?.predicate)}(${itemVariable}, ${outputVariable}).`;
+      } else {
+        throw new Error(`Loop operation ${operation} is not supported by the Prolog compiler.`);
+      }
+      const step = `step_${sanitizePredicate(node.id)}(Vars0, Vars) :-\n    get_dict(${source}, Vars0, Items),\n    maplist(${operation === 'identity' ? 'caa_identity' : `loop_map_${sanitizePredicate(node.id)}`}, Items, Results),\n    put_dict(${target}, Vars0, Results, Vars1),\n    ${nextClause(nextControl)}${operation === 'identity' ? '\n\ncaa_identity(Item, Item).' : ''}`;
+      return `${step}${helper}`;
+    }
     case 'end':
       return `step_${sanitizePredicate(node.id)}(Vars0, Vars) :-\n    Vars = Vars0.`;
     default:

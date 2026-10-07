@@ -286,10 +286,12 @@ async function invokePredicate(ir, node, state, options) {
 
 async function invokeLLM(ir, node, state, options) {
   const prompt = renderTemplate(node.config?.promptTemplate, state.variables);
+  const timeoutMs = Number(node.config?.timeoutMs ?? 30000);
   const payload = {
     model: node.config?.model || ir.metadata?.llmProfile || 'mock-default',
     systemPrompt: node.config?.systemPrompt || '',
     prompt,
+    temperature: Number(node.config?.temperature ?? 0.7),
     variables: clone(state.variables),
     nodeId: node.id,
     mockResponse: node.config?.mockResponse
@@ -302,12 +304,35 @@ async function invokeLLM(ir, node, state, options) {
   });
 
   let attempts = 0;
-  const maxAttempts = Math.max(1, Number(node.config?.retryCount ?? 1));
+  const configuredAttempts = Number(node.config?.retryCount ?? 1);
+  const maxAttempts = Number.isFinite(configuredAttempts)
+    ? Math.min(10, Math.max(1, Math.floor(configuredAttempts)))
+    : 1;
   let lastError = null;
   while (attempts < maxAttempts) {
     attempts += 1;
     try {
-      let response = await adapter(payload);
+      const controller = new AbortController();
+      const request = adapter({ ...payload, signal: controller.signal });
+      let response;
+      if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
+        let timeout;
+        try {
+          response = await Promise.race([
+            request,
+            new Promise((_, reject) => {
+              timeout = setTimeout(() => {
+                controller.abort();
+                reject(new Error(`LLM request timed out after ${timeoutMs} ms.`));
+              }, timeoutMs);
+            })
+          ]);
+        } finally {
+          clearTimeout(timeout);
+        }
+      } else {
+        response = await request;
+      }
       if (typeof response === 'string' && node.config?.structuredSchema) {
         try {
           response = JSON.parse(response);
@@ -326,7 +351,12 @@ async function invokeLLM(ir, node, state, options) {
       lastError = error.message;
     }
   }
-  return { success: false, prompt, error: lastError ?? 'LLM call failed.' };
+  return {
+    success: false,
+    prompt,
+    error: lastError ?? 'LLM call failed.',
+    branch: node.config?.errorBehaviour === 'failure' ? 'failure' : undefined
+  };
 }
 
 async function invokeTool(node, state, options) {
@@ -508,6 +538,7 @@ export async function runAgent(agent, input, options = {}) {
         result = await invokeLLM(ir, node, state, options);
         traceEntry.prompt = result.prompt;
         traceEntry.response = result.response;
+        traceEntry.branch = result.branch;
         break;
       case 'tool':
         result = await invokeTool(node, state, options);

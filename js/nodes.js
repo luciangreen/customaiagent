@@ -59,6 +59,8 @@ const DEFAULT_CONFIG = {
     inputVariables: ['question'],
     outputVariable: 'answer',
     structuredSchema: '',
+    temperature: 0.7,
+    timeoutMs: 30000,
     retryCount: 1,
     errorBehaviour: 'failure',
     mockResponse: ''
