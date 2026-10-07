@@ -12,6 +12,8 @@ Browser-based MVP for building custom AI agents as visual graphs and compiling t
 - graph validation for missing Start, unreachable nodes, undefined variables, invalid decisions, malformed schemas and recursive sub-agent cycles
 - graph → IR, IR → Prolog and IR → JavaScript compilation
 - browser runtime with trace output, mocked LLM execution, calculator tool, memory scopes, loop mapping and sub-agent calls
+- typed control, data, branch, choice, loop, memory and exception connections, with individual connection removal
+- configurable LLM temperature and timeout, with retries capped at ten attempts
 - starter examples for school, classifier and research agents
 - automated Node.js tests for graph, compiler, runtime, trace, memory, loops, tool calls, structured LLM responses and sub-agents
 
@@ -49,5 +51,14 @@ Variables are referenced with a leading `$` in node configuration, rule heads an
 ## Notes
 
 - The shared IR is the authoritative machine representation for validation, runtime execution and code generation.
-- The generated Prolog is readable and aligned with the graph structure; SWI-Prolog execution is scaffolded through the included runtime files.
+- The generated Prolog is readable and aligned with the graph structure. The included Prolog runtime is currently a scaffold and does not yet provide equivalent execution for all generated agents.
 - Real LLM access is supported through the `runAgent(..., { llmAdapter })` runtime hook so exported agents never store secrets.
+
+## Remaining specification work
+
+- **Prolog parity:** `prolog/agent_runtime.pl`, `prolog/llm.pl` and `prolog/tools.pl` still contain passthrough or placeholder behavior. Execute generated agents in SWI-Prolog and add cross-runtime output-equivalence tests.
+- **Graph editor:** add multi-select, copy/paste, pan, keyboard editing, and debugger breakpoints with step/continue/stop/restart controls.
+- **Connection semantics and analysis:** data, choice, memory and exception links are currently visual/exported types, not executable flow or data bindings. Add branch-aware variable analysis, unused/conflicting-variable diagnostics, and determinism analysis.
+- **Runtime completeness:** implement durable browser memory and query/replace operations; broader tools and provider/proxy configuration; full collection operations and bounded while/repeat/retry loops. Prolog loop generation currently covers identity and two-argument predicate mapping only.
+- **Tracing and editing:** include LLM model and duration in trace output, provide an editable generated-code view, and improve imported-agent schema validation.
+- **Advanced features:** natural-language graph generation, user-defined shapes, and the remaining templates listed in the specification are not implemented.

@@ -150,14 +150,18 @@ test('LLM timeout and retry limits are enforced', async () => {
   const llm = graph.nodes.find((node) => node.type === 'llm');
   llm.config.retryCount = 100;
   llm.config.timeoutMs = 0;
+  llm.config.temperature = 0.35;
   let attempts = 0;
+  let observedTemperature;
   const boundedResult = await runAgent(graph, { question: 'hello' }, {
-    llmAdapter: async () => {
+    llmAdapter: async (request) => {
       attempts += 1;
+      observedTemperature = request.temperature;
       throw new Error('adapter failed');
     }
   });
   assert.equal(attempts, 10);
+  assert.equal(observedTemperature, 0.35);
   assert.equal(boundedResult.status, 'failed');
 
   llm.config.retryCount = 1;

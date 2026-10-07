@@ -170,8 +170,7 @@ function compileNodeStep(ir, node) {
       const outputVariable = variableName(node.config?.outputVariable || 'resultItem');
       const operation = node.config?.operation || 'identity';
       let helper = '';
-      if (operation === 'identity') {
-      } else if (operation === 'predicate') {
+      if (operation === 'predicate') {
         const args = node.config?.args ?? [];
         const inputArg = args.find((arg) => arg === `$${node.config?.itemVariable || 'item'}`);
         const outputArg = args.find((arg) => arg === `$${node.config?.outputVariable || 'resultItem'}`);
@@ -180,7 +179,7 @@ function compileNodeStep(ir, node) {
         }
         const helperName = `loop_map_${sanitizePredicate(node.id)}`;
         helper = `\n${helperName}(${itemVariable}, ${outputVariable}) :-\n    ${sanitizePredicate(node.config?.predicate)}(${itemVariable}, ${outputVariable}).`;
-      } else {
+      } else if (operation !== 'identity') {
         throw new Error(`Loop operation ${operation} is not supported by the Prolog compiler.`);
       }
       const step = `step_${sanitizePredicate(node.id)}(Vars0, Vars) :-\n    get_dict(${source}, Vars0, Items),\n    maplist(${operation === 'identity' ? 'caa_identity' : `loop_map_${sanitizePredicate(node.id)}`}, Items, Results),\n    put_dict(${target}, Vars0, Results, Vars1),\n    ${nextClause(nextControl)}${operation === 'identity' ? '\n\ncaa_identity(Item, Item).' : ''}`;
