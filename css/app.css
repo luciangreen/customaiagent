@@ -144,9 +144,47 @@ button {
   fill: none;
 }
 
+.connection-line--data,
+.connection-line--memory {
+  stroke: #2563eb;
+  stroke-dasharray: 5 4;
+}
+
+.connection-line--success,
+.connection-line--true {
+  stroke: #0f766e;
+}
+
+.connection-line--failure,
+.connection-line--false,
+.connection-line--exception {
+  stroke: #dc2626;
+}
+
+.connection-line--choice,
+.connection-line--loop {
+  stroke: #7c3aed;
+}
+
 .connection-label {
   fill: #475569;
   font-size: 12px;
+}
+
+.connection-label--success,
+.connection-label--true {
+  fill: #0f766e;
+}
+
+.connection-label--failure,
+.connection-label--false,
+.connection-label--exception {
+  fill: #dc2626;
+}
+
+.connection-label--choice,
+.connection-label--loop {
+  fill: #7c3aed;
 }
 
 .workspace-node {

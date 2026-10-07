@@ -122,6 +122,10 @@ function render() {
       }
       graph.nodes.push(duplicateNode(node));
       setGraph(graph);
+    },
+    onRemoveConnection(connectionId) {
+      graph.connections = graph.connections.filter((connection) => connection.id !== connectionId);
+      setGraph(graph);
     }
   });
 }
