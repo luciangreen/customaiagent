@@ -50,12 +50,12 @@ export function renderConnections(svg, graph, nodeElements) {
     const y2 = targetRect.top + targetRect.height / 2 - svgRect.top + svg.scrollTop;
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     const midX = (x1 + x2) / 2;
-    path.setAttribute('class', 'connection-line');
+    path.setAttribute('class', `connection-line connection-line--${connection.kind}`);
     path.setAttribute('d', `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`);
     svg.appendChild(path);
 
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('class', 'connection-label');
+    label.setAttribute('class', `connection-label connection-label--${connection.kind}`);
     label.setAttribute('x', String(midX));
     label.setAttribute('y', String((y1 + y2) / 2 - 6));
     label.textContent = connection.kind;

@@ -166,6 +166,19 @@ export function validateGraph(graph) {
         if (!config.promptTemplate) {
           errors.push({ nodeId: node.id, label: node.label, reason: 'LLM node requires a prompt template.' });
         }
+        const templateWithoutPlaceholders = (config.promptTemplate ?? '').replace(/\{\{\s*[A-Za-z_][A-Za-z0-9_]*\s*\}\}/g, '');
+        if (/{{|}}/.test(templateWithoutPlaceholders)) {
+          errors.push({ nodeId: node.id, label: node.label, reason: 'LLM prompt template contains malformed interpolation braces.' });
+        }
+        if (config.temperature !== undefined && !Number.isFinite(Number(config.temperature))) {
+          errors.push({ nodeId: node.id, label: node.label, reason: 'LLM temperature must be a number.' });
+        }
+        if (config.timeoutMs !== undefined && (!Number.isFinite(Number(config.timeoutMs)) || Number(config.timeoutMs) < 0)) {
+          errors.push({ nodeId: node.id, label: node.label, reason: 'LLM timeout must be a non-negative number.' });
+        }
+        if (config.retryCount !== undefined && (!Number.isFinite(Number(config.retryCount)) || Number(config.retryCount) < 1)) {
+          errors.push({ nodeId: node.id, label: node.label, reason: 'LLM retry count must be a positive number.' });
+        }
         parseJsonField('Structured schema', config.structuredSchema, errors, node.id);
         break;
       case 'memory':
@@ -191,6 +204,9 @@ export function validateGraph(graph) {
       case 'loop':
         if (!config.sourceVariable || !config.targetVariable) {
           errors.push({ nodeId: node.id, label: node.label, reason: 'Loop node requires source and target variables.' });
+        }
+        if (!['identity', 'predicate', 'subAgent'].includes(config.operation ?? 'identity')) {
+          errors.push({ nodeId: node.id, label: node.label, reason: `Unsupported loop operation ${config.operation}.` });
         }
         referencedVariables.add(config.sourceVariable);
         break;

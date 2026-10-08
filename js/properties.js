@@ -25,6 +25,8 @@ const FIELD_SETS = {
     { name: 'inputVariables', label: 'Inputs (JSON array)', type: 'json' },
     { name: 'outputVariable', label: 'Output', type: 'text' },
     { name: 'structuredSchema', label: 'Structured Format (JSON object)', type: 'textarea' },
+    { name: 'temperature', label: 'Temperature', type: 'number' },
+    { name: 'timeoutMs', label: 'Timeout (ms)', type: 'number' },
     { name: 'retryCount', label: 'Retry', type: 'number' },
     { name: 'errorBehaviour', label: 'Error Behaviour', type: 'text' },
     { name: 'mockResponse', label: 'Mock response', type: 'textarea' }
@@ -108,7 +110,7 @@ function readFieldValue(definition, element) {
   return element.value;
 }
 
-export function renderPropertyEditor({ container, graph, selectedNode, onUpdate, onDelete, onDuplicate }) {
+export function renderPropertyEditor({ container, graph, selectedNode, onUpdate, onDelete, onDuplicate, onRemoveConnection }) {
   container.replaceChildren();
   if (!selectedNode) {
     const empty = document.createElement('p');
@@ -178,9 +180,12 @@ export function renderPropertyEditor({ container, graph, selectedNode, onUpdate,
   const connectionList = document.createElement('div');
   connectionList.className = 'chip-row';
   for (const connection of graph.connections.filter((edge) => edge.from === selectedNode.id || edge.to === selectedNode.id)) {
-    const chip = document.createElement('span');
+    const chip = document.createElement('button');
+    chip.type = 'button';
     chip.className = 'chip';
     chip.textContent = `${connection.kind}: ${connection.from} → ${connection.to}`;
+    chip.title = 'Remove connection';
+    chip.addEventListener('click', () => onRemoveConnection(connection.id));
     connectionList.appendChild(chip);
   }
   if (connectionList.childElementCount) {

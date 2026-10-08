@@ -84,6 +84,9 @@ test('decision, loop, memory and tool nodes execute', async () => {
   assert.deepEqual(result.variables.results, [1, 2, 3]);
   assert.equal(result.memory.session.history, 'hello');
   assert.equal(result.variables.sum, 11);
+  const prolog = compileIRToProlog(graphToIR(graph));
+  assert.match(prolog, /maplist\(caa_identity, Items, Results\)/);
+  assert.doesNotMatch(prolog, /Loop nodes are executed by the JavaScript runtime/);
 });
 
 test('rules and structured llm responses work', async () => {
@@ -142,6 +145,34 @@ test('sub-agent execution and trace are available', async () => {
   assert.ok(result.trace.length >= 4);
 });
 
+test('LLM timeout and retry limits are enforced', async () => {
+  const graph = structuredClone(classifierAgent);
+  const llm = graph.nodes.find((node) => node.type === 'llm');
+  llm.config.retryCount = 100;
+  llm.config.timeoutMs = 0;
+  llm.config.temperature = 0.35;
+  let attempts = 0;
+  let observedTemperature;
+  const boundedResult = await runAgent(graph, { question: 'hello' }, {
+    llmAdapter: async (request) => {
+      attempts += 1;
+      observedTemperature = request.temperature;
+      throw new Error('adapter failed');
+    }
+  });
+  assert.equal(attempts, 10);
+  assert.equal(observedTemperature, 0.35);
+  assert.equal(boundedResult.status, 'failed');
+
+  llm.config.retryCount = 1;
+  llm.config.timeoutMs = 5;
+  const timedResult = await runAgent(graph, { question: 'hello' }, {
+    llmAdapter: (_request) => new Promise((resolve) => setTimeout(() => resolve('late'), 30))
+  });
+  assert.equal(timedResult.status, 'failed');
+  assert.match(timedResult.trace.find((entry) => entry.type === 'llm').error, /timed out/);
+});
+
 test('validation finds missing producers and broken decisions', () => {
   const graph = createEmptyGraph('broken');
   const decision = { id: 'decision', type: 'decision', label: 'Broken', config: { left: '$missing', operator: '==', right: 'x' } };
@@ -150,4 +181,14 @@ test('validation finds missing producers and broken decisions', () => {
   const errors = validateGraph(graph);
   assert.ok(errors.some((error) => error.reason.includes('Variable missing')));
   assert.ok(errors.some((error) => error.reason.includes('true and false')));
+});
+
+test('validation rejects malformed LLM templates and invalid retry settings', () => {
+  const graph = structuredClone(classifierAgent);
+  const llm = graph.nodes.find((node) => node.type === 'llm');
+  llm.config.promptTemplate = '{{question}} and {{broken';
+  llm.config.retryCount = 0;
+  const errors = validateGraph(graph);
+  assert.ok(errors.some((error) => error.reason.includes('malformed interpolation')));
+  assert.ok(errors.some((error) => error.reason.includes('retry count')));
 });
