@@ -62,3 +62,12 @@ Variables are referenced with a leading `$` in node configuration, rule heads an
 - **Runtime completeness:** implement durable browser memory and query/replace operations; broader tools and provider/proxy configuration; full collection operations and bounded while/repeat/retry loops. Prolog loop generation currently covers identity and two-argument predicate mapping only.
 - **Tracing and editing:** include LLM model and duration in trace output, provide an editable generated-code view, and improve imported-agent schema validation.
 - **Advanced features:** natural-language graph generation, user-defined shapes, and the remaining templates listed in the specification are not implemented.
+
+## Stand-in model and inputs
+
+Until a real model adapter is given, both targets use the same stand-in: a
+node's `mockResponse` if it has one, otherwise `Mock response: ` followed by
+the prompt. The browser runtime's result says `usedMockLLM: true` in that
+case, and the compiled Prolog passes `mock_response(...)` to `llm_call/5`.
+A run lists any declared input that was not given in `warnings`; with the
+option `requireInputs: true` it stops instead.
