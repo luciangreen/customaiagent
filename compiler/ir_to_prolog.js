@@ -138,7 +138,7 @@ function compileNodeStep(ir, node) {
       const outputVariable = node.config?.outputVariable || 'response';
       const inputName = variableName(inputVariable);
       const outputName = variableName(outputVariable);
-      return `step_${sanitizePredicate(node.id)}(Vars0, Vars) :-\n    get_dict(${sanitizePredicate(inputVariable)}, Vars0, ${inputName}),\n    llm_call(${sanitizePredicate(node.config?.model || 'default')}, ${toPrologTerm(node.config?.systemPrompt || '')}, ${inputName}, [], ${outputName}),\n    put_dict(${sanitizePredicate(outputVariable)}, Vars0, ${outputName}, Vars1),\n    ${nextClause(nextControl)}`;
+      return `step_${sanitizePredicate(node.id)}(Vars0, Vars) :-\n    get_dict(${sanitizePredicate(inputVariable)}, Vars0, ${inputName}),\n    llm_call(${sanitizePredicate(node.config?.model || 'default')}, ${toPrologTerm(node.config?.systemPrompt || '')}, ${inputName}, [${node.config?.mockResponse ? `mock_response(${toPrologTerm(node.config.mockResponse)})` : ''}], ${outputName}),\n    put_dict(${sanitizePredicate(outputVariable)}, Vars0, ${outputName}, Vars1),\n    ${nextClause(nextControl)}`;
     }
     case 'memory': {
       const key = toPrologTerm(node.config?.key || 'memory');

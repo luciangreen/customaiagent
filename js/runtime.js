@@ -284,6 +284,20 @@ async function invokePredicate(ir, node, state, options) {
   return { success: result.success, branch: result.success ? 'success' : 'failure', error: result.error };
 }
 
+// The stand-in used when no adapter is given. The Prolog target's llm_call/5
+// gives the same answer, so a compiled agent behaves alike in both.
+export function mockLLMResponse(request) {
+  if (request.mockResponse) {
+    return request.mockResponse;
+  }
+  return `Mock response: ${request.prompt}`;
+}
+
+// Declared inputs that were not given, so a run on nothing is not silent.
+export function missingInputs(ir, variables) {
+  return (ir.inputs ?? []).filter((name) => variables[name] === undefined || variables[name] === null);
+}
+
 async function invokeLLM(ir, node, state, options) {
   const prompt = renderTemplate(node.config?.promptTemplate, state.variables);
   const timeoutMs = Number(node.config?.timeoutMs ?? 30000);
@@ -297,10 +311,7 @@ async function invokeLLM(ir, node, state, options) {
     mockResponse: node.config?.mockResponse
   };
   const adapter = options.llmAdapter ?? (async (request) => {
-    if (request.mockResponse) {
-      return request.mockResponse;
-    }
-    return `Mock response: ${request.prompt}`;
+    return mockLLMResponse(request);
   });
 
   let attempts = 0;
@@ -482,6 +493,10 @@ export async function runAgent(agent, input, options = {}) {
     memory: clone(options.memory ?? { temporary: {}, session: {}, persistent: {} }),
     trace: []
   };
+  const warnings = missingInputs(ir, state.variables).map((name) => `Missing input: ${name}`);
+  if (warnings.length > 0 && options.requireInputs) {
+    throw new Error(warnings.join('; '));
+  }
   const startNode = ir.nodes.find((node) => node.type === 'start');
   if (!startNode) {
     throw new Error('Graph has no Start node.');
@@ -591,6 +606,8 @@ export async function runAgent(agent, input, options = {}) {
   return {
     status,
     output,
+    warnings,
+    usedMockLLM: !options.llmAdapter,
     variables: state.variables,
     memory: state.memory,
     trace: state.trace,

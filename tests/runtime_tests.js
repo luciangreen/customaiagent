@@ -192,3 +192,23 @@ test('validation rejects malformed LLM templates and invalid retry settings', ()
   assert.ok(errors.some((error) => error.reason.includes('malformed interpolation')));
   assert.ok(errors.some((error) => error.reason.includes('retry count')));
 });
+
+test('missing declared input is reported', async () => {
+  const result = await runAgent(classifierAgent, { text: 'I love it' });
+  assert.deepEqual(result.warnings, ['Missing input: question']);
+  assert.equal(result.usedMockLLM, true);
+});
+
+test('requireInputs stops a run with missing inputs', async () => {
+  await assert.rejects(() => runAgent(classifierAgent, { text: 'x' }, { requireInputs: true }), /Missing input: question/);
+});
+
+test('given inputs give no warnings', async () => {
+  const result = await runAgent(classifierAgent, { question: 'What is 2+2?' });
+  assert.deepEqual(result.warnings, []);
+});
+
+test('compiled Prolog passes the same mock response as the browser runtime', () => {
+  const prolog = compileIRToProlog(graphToIR(classifierAgent));
+  assert.match(prolog, /mock_response\("?math"?\)|mock_response\('?math'?\)/);
+});
